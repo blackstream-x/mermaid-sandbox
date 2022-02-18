@@ -1,40 +1,61 @@
-# CI/CD
+# GitOps
 
 ```mermaid
-flowchart TB
-  subgraph SCM
+flowchart LR
+  dev(("Developer"))
+  subgraph SCM ["Git"]
     direction TB
     prj[Project sources]
     iac[Helm charts]
     hr[Helm releases]
   end
-  subgraph CI
+  dev --> prj
+  dev --> iac
+  dev --> hr
+  subgraph CI ["CI pipeline"]
     direction TB
-    subgraph appci ["CI pipeline for applications"]
+    subgraph appci ["Applications CI"]
       direction LR
-      build[Build] ---> test[Test]
-      test ---> upload["Upload package"]
-      upload ---> image["Build/upload container image"]
+      build[Build] --> test[Tests]
+      test --> upload["Upload package"]
+      upload --> image["Build/upload container image"]
     end
-    subgraph helmci ["CI pipeline for helm charts"]
-       pack["Package and upload"]
+    subgraph helmci ["Helm CI"]
+       pack["Package/upload"]
     end
   end
+  prj -->|Commit triggers| appci
+  iac -->|Commit triggers| helmci
   subgraph ART ["Artifacts repository"]
     direction TB
-    packagesrepo["Packages per language"]
+    packagesrepo["language-dependent Packages"]
     containerrepo["Container images"]
     helmrepo["Helm charts"]
   end
-  
-  dev["Developer"] ---> prj
-  dev ---> iac
-  dev ---> hr
-  prj ---> appci
-  upload ----> packagesrepo
-  packagesrepo ----> build
-  image ----> containerrepo
-  iac ---> helmci
-  pack ----> helmrepo
+  subgraph ART ["Artifacts repository"]
+    direction TB
+    packagesrepo["language-dependent Packages"]
+    containerrepo["Container images"]
+    helmrepo["Helm charts"]
+  end
+  upload -->|push built package| packagesrepo
+  build -->|pull dependencies| packagesrepo
+  image -->|push container image| containerrepo
+  pack -->|push as tarball| helmrepo
+  hr -..-|references| helmrepo
+  subgraph CD ["CD pipeline"]
+    direction TB
+    orchauto["Automation"] -..->|lookup release| containerrepo
+    orchauto -->|push updated Helm release| hr
+    orchupdate -->|pull Helm release| hr
+  end
+  hr --> |Commit triggers| orchupdate
+  subgraph cluster ["Kubernetes Cluster"]
+    direction TB
+    orchupdate -->|push Helm release| helmop["Helm operator"]
+    helmop -->|pull Helm chart| helmrepo
+    helmop -->|deploy| pod["Target Pod"]
+    pod -->|pull image| containerrepo
+  end
 
 ```
