@@ -1,63 +1,47 @@
-# GitOps
+# GitOps with Kubernetes in a Nutshell
 
 ```mermaid
 flowchart LR
   dev(("Developer"))
-  subgraph SCM ["Git"]
-    direction TB
-    prj[Project sources]
-    iac[Helm charts]
-    hr[Helm releases]
-  end
-  dev --> prj
-  dev --> iac
-  dev --> hr
-  subgraph CI ["CI pipeline"]
-    direction TB
-    subgraph appci ["Applications CI"]
-      direction LR
-      build[Build] --> test[Tests]
-      test --> upload["Upload package"]
-      upload --> image["Build/upload container image"]
-    end
-    prj -.->|Commit triggers| appci
-    subgraph helmci ["Helm CI"]
-       pack["Package/upload"]
-    end
-  end
-  iac -.->|Commit triggers| helmci
-  subgraph ART ["Artifacts repository"]
-    direction TB
-    packagesrepo["language-dependent Packages"]
-    containerrepo["Container images"]
-    helmrepo["Helm charts"]
-  end
-  subgraph ART ["Artifacts repository"]
-    direction TB
-    packagesrepo["language-dependent Packages"]
-    containerrepo["Container images"]
-    helmrepo["Helm charts"]
-  end
-  upload -->|push built package| packagesrepo
-  build -->|pull source| prj
-  build -->|pull dependencies| packagesrepo
-  image -->|push container image| containerrepo
-  pack -->|pull Helm chart| iac
-  pack --> helmrepo
-  hr -.->|references| helmrepo
-  subgraph CD ["CD pipeline"]
+  subgraph SCM ["Git Repositories"]
     direction LR
-    orchauto["Automation"] -.->|lookup release| containerrepo
-    orchauto -->|update| hr
-    orchupdate["Updater"] -->|pull Helm release| hr
+    dev ==> appsrc[Project Sources] & charts[Helm Charts] & hr[Helm Releases]
   end
-  hr -.-> |Commit triggers| orchupdate
-  subgraph cluster ["Kubernetes Cluster"]
+  subgraph CI ["CI pipeline"]
+    direction LR
+    subgraph appci ["Application CI"]
+      direction LR
+      Build --> Tests
+      Build -->|pulls Source| appsrc
+      Tests --> Upload
+      Upload --> image[Build Container Image]
+    end
+    appsrc -.->|triggers| appci
+    subgraph helmci ["Helm CI"]
+       pack["Pack/Upload"] -->|pulls Helm chart| charts
+    end
+    charts -.->|triggers| helmci
+  end
+  subgraph CD ["CD Orchestrator"]
     direction TB
-    orchupdate -->|push Helm release| helmop["Helm operator"]
-    helmop -->|pull Helm chart| helmrepo
-    helmop -->|deploy| pod["Target Pod"]
-    pod -->|pull image| containerrepo
+    Watcher ==>|updates| hr
+    hr -..-> |triggers| Updater 
+    Updater -->|pulls Helm Release| hr
   end
-
+  subgraph ART ["Artifacts repository"]
+    direction TB
+    Build -->|pulls Dependencies| packagesrepo[Packages]
+    Upload ==>|pushes Package| packagesrepo
+    image ==>|pushes Container Image| containerrepo[Container Images]
+    Watcher -.->|polls for Tag Updates| containerrepo & helmrepo[Helm Charts]
+    pack ==>|pushes Helm Chart as Tarball| helmrepo
+    hr -.->|references| helmrepo
+  end
+  subgraph KUBE ["Kubernetes Cluster"]
+    direction LR
+    Updater ==>|pushes Helm Release| helmop["Helm Operator"]
+    helmop -->|pulls Helm Chart| helmrepo
+    helmop -->|installs/updates| Deployment & Service & other[[...]]
+    Deployment -->|starts| Pod -->|pulls Container Image| containerrepo
+  end
 ```
