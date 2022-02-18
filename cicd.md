@@ -20,12 +20,12 @@ flowchart LR
       test --> upload["Upload package"]
       upload --> image["Build/upload container image"]
     end
+    prj -.->|Commit triggers| appci
     subgraph helmci ["Helm CI"]
        pack["Package/upload"]
     end
   end
-  prj -->|Commit triggers| appci
-  iac -->|Commit triggers| helmci
+  iac -.->|Commit triggers| helmci
   subgraph ART ["Artifacts repository"]
     direction TB
     packagesrepo["language-dependent Packages"]
@@ -39,23 +39,25 @@ flowchart LR
     helmrepo["Helm charts"]
   end
   upload -->|push built package| packagesrepo
+  build -->|pull source| prj
   build -->|pull dependencies| packagesrepo
   image -->|push container image| containerrepo
+  pack -->|pull Helm chart| iac
   pack --> helmrepo
-  hr -..-|references| helmrepo
+  hr -.->|references| helmrepo
   subgraph CD ["CD pipeline"]
-    direction TB
-    orchauto["Automation"] -..->|lookup release| containerrepo
-    orchauto -->|push updated Helm release| hr
+    direction LR
+    orchauto["Automation"] -.->|lookup release| containerrepo
+    orchauto -->|update| hr
     orchupdate["Updater"] -->|pull Helm release| hr
   end
-  hr --> |Commit triggers| orchupdate
+  hr -.-> |Commit triggers| orchupdate
   subgraph cluster ["Kubernetes Cluster"]
     direction TB
     orchupdate -->|push Helm release| helmop["Helm operator"]
     helmop -->|pull Helm chart| helmrepo
     helmop -->|deploy| pod["Target Pod"]
-    pod --->|pull image| containerrepo
+    pod -->|pull image| containerrepo
   end
 
 ```
