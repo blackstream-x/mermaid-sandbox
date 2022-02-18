@@ -1,2 +1,3 @@
 # mermaid-sandbox
-Trying out mermaid
+
+[CI/CD and GitOps visualization](./cicd.md)
