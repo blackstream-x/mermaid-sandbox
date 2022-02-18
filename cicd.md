@@ -41,13 +41,13 @@ flowchart LR
   upload -->|push built package| packagesrepo
   build -->|pull dependencies| packagesrepo
   image -->|push container image| containerrepo
-  pack -->|push as tarball| helmrepo
+  pack --> helmrepo
   hr -..-|references| helmrepo
   subgraph CD ["CD pipeline"]
     direction TB
     orchauto["Automation"] -..->|lookup release| containerrepo
     orchauto -->|push updated Helm release| hr
-    orchupdate -->|pull Helm release| hr
+    orchupdate["Updater"] -->|pull Helm release| hr
   end
   hr --> |Commit triggers| orchupdate
   subgraph cluster ["Kubernetes Cluster"]
@@ -55,7 +55,7 @@ flowchart LR
     orchupdate -->|push Helm release| helmop["Helm operator"]
     helmop -->|pull Helm chart| helmrepo
     helmop -->|deploy| pod["Target Pod"]
-    pod -->|pull image| containerrepo
+    pod --->|pull image| containerrepo
   end
 
 ```
