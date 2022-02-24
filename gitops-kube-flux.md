@@ -1,13 +1,11 @@
-# GitOps with Kubernetes and Flux
+# GitOps with Kubernetes and Flux CD
 
 ```mermaid
 flowchart LR
 
-  Developer((Developer))
-
   subgraph SCM ["Git Repositories"]
     direction TB
-    ProjectSources & HelmCharts & HelmReleases
+    Developer((Developer)) ==> ProjectSources & HelmCharts & HelmReleases
   end
 
   subgraph appci ["Application CI"]
@@ -41,8 +39,6 @@ flowchart LR
     Deployment -->|starts| Pod
   end
 
-  Developer ==> ProjectSources & HelmCharts & HelmReleases
-  
   ProjectSources -...->|triggers| appci
   HelmCharts -.->|triggers| helmci
   HelmReleases -...->|references| ContainerImages & PackedHelmCharts
