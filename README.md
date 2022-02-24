@@ -4,5 +4,5 @@
 - When a payload is pushed, the arrow is bold
 - Notifications or references are dotted
 
-[Argo CD](./gitops-kube-argo.md)
-[Flux CD](./gitops-kube-flux.md) 
+- [Argo CD](./gitops-kube-argo.md)
+- [Flux CD](./gitops-kube-flux.md) 
