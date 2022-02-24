@@ -3,11 +3,9 @@
 ```mermaid
 flowchart LR
 
-  Developer((Developer))
-
   subgraph SCM ["Git Repositories"]
     direction TB
-    ProjectSources & HelmCharts
+    Developer((Developer)) ==> ProjectSources & HelmCharts
   end
 
   subgraph appci ["Application CI"]
@@ -35,12 +33,10 @@ flowchart LR
     Deployment -->|starts| Pod
   end
 
-  Developer ==> ProjectSources & HelmCharts
-  
-  ProjectSources -...->|triggers| appci
+  ProjectSources -.....->|triggers| appci
   HelmCharts -...->|references| ContainerImages
-  
-  appci ---->|pulls Source| ProjectSources
+
+  appci ------>|pulls Source| ProjectSources
   appci ---->|pulls Dependencies| Packages
   appci ---->|pulls Build Container Images| ContainerImages
   UploadJob ====>|pushes Package| Packages
@@ -51,7 +47,7 @@ flowchart LR
   Updater -.->|polls for updates| HelmCharts 
   Updater -->|pulls Helm Charts| HelmCharts
   Updater ==>|pushes Helm Charts| HelmOperator
-  
+
   Pod -->|pulls Container Image| ContainerImages
 
 ```
